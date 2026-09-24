@@ -9,7 +9,7 @@ All prompts filled in. All services implemented. Run this to see the end goal.
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env — add your LLM_API_KEY
+# Edit .env — add your LLM_API_KEY (or use the OpenAI-specific example for an advanced lab)
 npm install
 npm run dev
 ```

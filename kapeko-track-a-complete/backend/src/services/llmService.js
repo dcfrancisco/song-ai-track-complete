@@ -8,6 +8,12 @@
 
 const axios = require('axios');
 
+// Existing labs use the generic LLM_API_KEY. New OpenAI-specific examples may
+// use OPENAI_API_KEY without changing the existing provider contract.
+function apiKey(provider) {
+  return process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
+}
+
 /**
  * Call the configured LLM and return the text response.
  * @param {string} systemPrompt - The system / role instruction
@@ -28,7 +34,7 @@ async function complete(systemPrompt, userPrompt) {
 // ── Azure OpenAI ───────────────────────────────────────────────────────────
 async function callAzureOpenAI(system, user) {
   const endpoint = requireAzureEndpoint();
-  const apiKey   = process.env.LLM_API_KEY;
+  const key      = apiKey('azure');
   const isV1Endpoint = endpoint.endsWith('/openai/v1');
 
   const response = await axios.post(
@@ -43,7 +49,7 @@ async function callAzureOpenAI(system, user) {
     },
     {
       headers: {
-        'api-key':      apiKey,
+        'api-key':      key,
         'Content-Type': 'application/json',
       },
     }
@@ -69,7 +75,7 @@ function requireAzureEndpoint() {
 // ── OpenAI ─────────────────────────────────────────────────────────────────
 async function callOpenAI(system, user) {
   const model  = process.env.LLM_MODEL || 'gpt-4o';
-  const apiKey = process.env.LLM_API_KEY;
+  const key    = apiKey('openai');
 
   const response = await axios.post(
     'https://api.openai.com/v1/chat/completions',
@@ -83,7 +89,7 @@ async function callOpenAI(system, user) {
     },
     {
       headers: {
-        Authorization:  `Bearer ${apiKey}`,
+        Authorization:  `Bearer ${key}`,
         'Content-Type': 'application/json',
       },
     }
@@ -94,7 +100,7 @@ async function callOpenAI(system, user) {
 // ── Groq (free tier — OpenAI-compatible) ───────────────────────────────────
 async function callGroq(system, user) {
   const model  = process.env.LLM_MODEL || 'llama-3.1-8b-instant';
-  const apiKey = process.env.LLM_API_KEY;
+  const key    = apiKey('groq');
 
   const response = await axios.post(
     'https://api.groq.com/openai/v1/chat/completions',
@@ -108,7 +114,7 @@ async function callGroq(system, user) {
     },
     {
       headers: {
-        Authorization:  `Bearer ${apiKey}`,
+        Authorization:  `Bearer ${key}`,
         'Content-Type': 'application/json',
       },
     }
@@ -142,9 +148,10 @@ async function completeWithHistory(systemPrompt, history) {
     ? 'https://api.openai.com/v1/chat/completions'
     : `${process.env.AZURE_OPENAI_ENDPOINT}/chat/completions?api-version=2024-02-01`;
 
+  const key = apiKey(provider);
   const headers = provider === 'azure'
-    ? { 'Content-Type': 'application/json', 'api-key': process.env.LLM_API_KEY }
-    : { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.LLM_API_KEY}` };
+    ? { 'Content-Type': 'application/json', 'api-key': key }
+    : { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` };
 
   const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
   const data = await res.json();
@@ -165,9 +172,10 @@ async function embed(text) {
     ? 'https://api.openai.com/v1/embeddings'
     : `${process.env.AZURE_OPENAI_EMBEDDING_ENDPOINT || azureEndpoint}/embeddings${isAzureV1Endpoint ? '' : '?api-version=2024-02-01'}`;
 
+  const key = apiKey(provider);
   const headers = provider === 'azure'
-    ? { 'Content-Type': 'application/json', 'api-key': process.env.LLM_API_KEY }
-    : { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.LLM_API_KEY}` };
+    ? { 'Content-Type': 'application/json', 'api-key': key }
+    : { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` };
 
   const body = provider === 'openai'
     ? { model: 'text-embedding-ada-002', input: text }

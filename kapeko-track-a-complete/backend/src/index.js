@@ -5,6 +5,7 @@
 // Runs on: http://localhost:8080
 
 const path = require('path');
+const crypto = require('crypto');
 const dotenv = require('dotenv');
 
 // Load the project-level .env when the backend is started from this folder.
@@ -14,6 +15,7 @@ const express    = require('express');
 const cors       = require('cors');
 const rateLimit  = require('express-rate-limit');
 const kapeKoRoutes = require('./routes/kapeKo');
+const workflow = require('./services/workflowService');
 
 const app  = express();
 const PORT = process.env.PORT || 8080;
@@ -35,6 +37,17 @@ const llmLimiter = rateLimit({
 
 // ── Middleware ─────────────────────────────────────────────────────────────
 app.use(express.json());
+app.use((req, res, next) => {
+  const correlationId = req.header('x-correlation-id') || crypto.randomUUID();
+  req.correlationId = correlationId;
+  res.setHeader('x-correlation-id', correlationId);
+  const started = Date.now();
+  res.on('finish', () => console.log(JSON.stringify({
+    event: 'http_request', correlationId, method: req.method,
+    path: req.path, status: res.statusCode, latencyMs: Date.now() - started,
+  })));
+  next();
+});
 app.use(cors({
   origin: [
     'http://localhost:5173',
@@ -59,7 +72,7 @@ app.use([
 app.use('/api', kapeKoRoutes);
 
 // ── Start ──────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+workflow.initialize().then(() => app.listen(PORT, () => {
   console.log('');
   console.log('☕  Kape Ko Commerce API — Track A (Node.js)');
   console.log(`✅  Server running on http://localhost:${PORT}`);
@@ -74,4 +87,7 @@ app.listen(PORT, () => {
   console.log('  GET  /api/products/:id       → Lab 5: product detail');
   console.log('  GET  /api/health             → health check');
   console.log('');
+})).catch((error) => {
+  console.error('Failed to initialize SQLite persistence:', error.message);
+  process.exitCode = 1;
 });

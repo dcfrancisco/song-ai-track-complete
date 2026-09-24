@@ -45,17 +45,10 @@ Open port 5173 → Kape Ko storefront
 
 All backend features use one provider-neutral `LlmService`. Configure it with
 `llm.provider`, `llm.model`, and `llm.api-key` in `application.properties` or
-environment variables. OpenAI-compatible providers use the same adapter:
+environment variables. Existing provider switching remains supported.
 
-```properties
-llm.provider=openai-compatible
-llm.base-url=https://api.together.xyz/v1
-llm.model=meta-llama/Llama-3.3-70B-Instruct-Turbo
-llm.api-key=${LLM_API_KEY}
-```
-
-The same setup works for Ollama (`http://localhost:11434/v1`), LM Studio,
-OpenRouter, Together, Fireworks, and other compatible APIs.
+New advanced OpenAI examples may use `OPENAI_API_KEY`; this does not replace
+the existing `LLM_API_KEY` configuration used by the foundation labs.
 
 ## API Endpoints (all working)
 - POST /api/catalog/generate → Lab 3

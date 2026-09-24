@@ -156,7 +156,7 @@ public class LlmService {
         ObjectNode body = mapper.createObjectNode();
         body.put("input", text);
         String response = WebClient.builder().baseUrl(embeddingEndpoint)
-                .defaultHeader("api-key", env.getProperty("llm.api-key"))
+                .defaultHeader("api-key", credential())
                 .defaultHeader("Content-Type", "application/json")
                 .build().post()
                 .uri("/embeddings?api-version=2024-02-01")
@@ -169,7 +169,7 @@ public class LlmService {
                 .baseUrl(azureDeploymentEndpoint(
                         env.getProperty("llm.azure.endpoint", ""),
                         env.getProperty("llm.azure.deployment", env.getProperty("llm.model", "gpt-4o"))))
-                .defaultHeader("api-key", env.getProperty("llm.api-key"))
+                .defaultHeader("api-key", credential())
                 .defaultHeader("Content-Type", "application/json")
                 .build();
     }
@@ -177,7 +177,7 @@ public class LlmService {
     private WebClient azureResponsesClient() {
         return WebClient.builder()
                 .baseUrl(env.getProperty("llm.azure.endpoint", "").replaceAll("/+$", ""))
-                .defaultHeader("api-key", env.getProperty("llm.api-key"))
+                .defaultHeader("api-key", credential())
                 .defaultHeader("Content-Type", "application/json")
                 .build();
     }
@@ -247,7 +247,7 @@ public class LlmService {
 
     private WebClient openAICompatClient(String baseUrl) {
         return WebClient.builder().baseUrl(baseUrl)
-                .defaultHeader("Authorization", "Bearer " + env.getProperty("llm.api-key"))
+                .defaultHeader("Authorization", "Bearer " + credential())
                 .defaultHeader("Content-Type", "application/json")
                 .build();
     }
@@ -268,7 +268,7 @@ public class LlmService {
 
         private WebClient anthropicClient() {
         return WebClient.builder().baseUrl(env.getProperty("llm.base-url", "https://api.anthropic.com"))
-                .defaultHeader("x-api-key", env.getProperty("llm.api-key"))
+                .defaultHeader("x-api-key", credential())
                 .defaultHeader("anthropic-version", "2023-06-01")
                 .defaultHeader("Content-Type", "application/json")
             .build();
@@ -306,6 +306,26 @@ public class LlmService {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private String credential() {
+        String configured = env.getProperty("llm.api-key");
+        if (configured != null && !configured.isBlank()) return configured;
+        String provider = env.getProperty("llm.provider", "azure").toLowerCase();
+        String variable = switch (provider) {
+            case "openai" -> "OPENAI_API_KEY";
+            case "azure" -> "AZURE_OPENAI_API_KEY";
+            case "anthropic" -> "ANTHROPIC_API_KEY";
+            case "groq" -> "GROQ_API_KEY";
+            case "openai-compatible", "custom", "ollama" -> "LLM_COMPATIBLE_API_KEY";
+            default -> throw unsupportedProvider(provider);
+        };
+        String value = env.getProperty(variable);
+        if (value == null || value.isBlank()) value = env.getProperty("LLM_API_KEY");
+        if ((value == null || value.isBlank()) && !provider.equals("ollama")) {
+            throw new IllegalStateException(variable + " is required for llm.provider=" + provider);
+        }
+        return value == null ? "" : value;
+    }
 
     private String extractContent(String response) {
         try {

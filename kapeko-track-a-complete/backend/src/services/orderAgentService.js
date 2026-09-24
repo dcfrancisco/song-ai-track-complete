@@ -2,6 +2,7 @@
 // Lab 9: Order Assistant Agent — COMPLETE IMPLEMENTATION
 
 const llm = require('./llmService');
+const { validateToolCall } = require('./toolContractService');
 
 const AGENT_SYSTEM = `You are the Kape Ko Order Assistant — an autonomous agent that helps
 customers manage their orders and subscriptions.
@@ -36,7 +37,7 @@ async function process(customerId, message) {
   const response = await llm.complete(AGENT_SYSTEM, message);
 
   if (isToolCall(response)) {
-    return executeToolCall(customerId, response);
+    return executeToolCall(customerId, response, 'customer');
   }
 
   return { type: 'message', response, toolCalled: false };
@@ -47,12 +48,16 @@ function isToolCall(response) {
   return trimmed.startsWith('{') && trimmed.includes('"tool"');
 }
 
-function executeToolCall(customerId, toolJson) {
+function executeToolCall(customerId, toolJson, authority) {
   try {
     const start = toolJson.indexOf('{');
     const end = toolJson.lastIndexOf('}') + 1;
     const parsed = JSON.parse(toolJson.substring(start, end));
     const { tool, args } = parsed;
+    const validation = validateToolCall(tool, args, authority);
+    if (!validation.valid) {
+      return { type: 'error', response: validation.error, toolCalled: false, denied: true };
+    }
 
     switch (tool) {
       case 'getOrderStatus':

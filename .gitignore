@@ -21,6 +21,22 @@ yarn-error.log*
 
 # macOS
 .DS_Store
+._*
+.AppleDouble
+.LSOverride
+Icon?
+__MACOSX/
+.Spotlight-V100/
+.Trashes/
+
+# Test and coverage output
+**/coverage/
+**/.nyc_output/
+**/.pytest_cache/
+
+# Frontend tooling caches
+**/.vite/
+**/.cache/
 
 # IDE files
 .vscode/

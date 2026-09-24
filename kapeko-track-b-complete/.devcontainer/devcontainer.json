@@ -1,5 +1,5 @@
 {
-  "name": "Kape Ko — SONG Level 2",
+  "name": "Kape Ko — Track B Spring Boot + Angular",
   "image": "mcr.microsoft.com/devcontainers/java:17-bullseye",
   "features": {
     "ghcr.io/devcontainers/features/node:1": { "version": "20" },
@@ -25,10 +25,11 @@
   "forwardPorts": [8080, 5173],
   "portsAttributes": {
     "8080": { "label": "Spring Boot API", "onAutoForward": "notify" },
-    "5173": { "label": "React Storefront", "onAutoForward": "openBrowser" }
+    "5173": { "label": "Angular Storefront", "onAutoForward": "openBrowser" }
   },
-  "postCreateCommand": "cd frontend && npm install",
+  "postCreateCommand": "mvn -q -DskipTests dependency:go-offline -f backend/pom.xml && npm install --prefix frontend",
   "remoteEnv": {
-    "LLM_API_KEY": "${localEnv:LLM_API_KEY}"
+    "LLM_API_KEY": "${localEnv:LLM_API_KEY}",
+    "OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}"
   }
 }

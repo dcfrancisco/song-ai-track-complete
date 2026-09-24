@@ -11,6 +11,7 @@ const rag         = require('../services/ragService');
 const rec         = require('../services/recommendationService');
 const orderAgent  = require('../services/orderAgentService');
 const multiAgent  = require('../services/multiAgentService');
+const workflow    = require('../services/workflowService');
 
 // ── Health ────────────────────────────────────────────────────────────────
 router.get('/health', (req, res) => res.json({
@@ -114,6 +115,27 @@ router.post('/agent/order', async (req, res) => {
     if (!message?.trim()) return res.status(400).json({ error: 'message is required' });
     res.json(await orderAgent.process(customerId, message));
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Advanced persisted workflow exercise. This is deliberately separate from
+// the introductory one-shot order agent above.
+router.post('/workflows/order', async (req, res) => {
+  try {
+    const { actorId = 'learner-demo', authority = 'customer', idempotencyKey } = req.body;
+    res.status(201).json(await workflow.createOrderWorkflow({ actorId, authority, idempotencyKey }));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.get('/workflows/:id', async (req, res) => {
+  const result = await workflow.getWorkflow(req.params.id);
+  if (!result) return res.status(404).json({ error: 'Workflow not found' });
+  res.json(result);
+});
+
+router.post('/workflows/:id/resume', async (req, res) => {
+  try {
+    res.json(await workflow.resume(req.params.id, req.body || {}));
+  } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 // ── Lab 10: Multi-Agent Pipeline ─────────────────────────────────────────
